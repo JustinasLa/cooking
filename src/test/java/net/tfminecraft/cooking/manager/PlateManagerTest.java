@@ -116,4 +116,79 @@ class PlateManagerTest {
 
         assertFalse(new PlateManager().hasSauce(plate));
     }
+
+    @Test
+    void sauceIsLeftoverOnceTheLastFoodLeaves() {
+        Furniture plate = plateWithSauceVisual();
+        plate.getActiveSlots().put("item_1", new PlacedSlot(plate, "item_1"));
+
+        assertFalse(new PlateManager().hasLeftoverSauce(plate, null));
+        assertTrue(new PlateManager().hasLeftoverSauce(plate, "item_1"));
+    }
+
+    @Test
+    void sauceStaysWhileOtherFoodRemains() {
+        Furniture plate = plateWithSauceVisual();
+        plate.getActiveSlots().put("item_1", new PlacedSlot(plate, "item_1"));
+        plate.getActiveSlots().put("item_2", new PlacedSlot(plate, "item_2"));
+
+        assertFalse(new PlateManager().hasLeftoverSauce(plate, "item_1"));
+    }
+
+    @Test
+    void sauceAloneOnAPlateIsLeftover() {
+        assertTrue(new PlateManager().hasLeftoverSauce(plateWithSauceVisual(), null));
+    }
+
+    @Test
+    void plateWithoutSauceHasNoLeftover() {
+        Furniture plate = new Furniture("plate", null, UUID.randomUUID());
+        plate.getActiveSlots().put("item_1", new PlacedSlot(plate, "item_1"));
+
+        assertFalse(new PlateManager().hasLeftoverSauce(plate, null));
+        assertFalse(new PlateManager().hasLeftoverSauce(plate, "item_1"));
+    }
+
+    @Test
+    void sauceOnAnEmptyPlateReturnsBeforeTouchingThePlayerOrLadle() {
+        Furniture plate = new Furniture("plate", null, UUID.randomUUID());
+
+        // Null interaction arguments ensure the empty-plate attempt exits before using them.
+        assertDoesNotThrow(() -> new PlateManager().addSauce(null, plate, null, null));
+        assertTrue(plate.getActiveSlots().isEmpty());
+    }
+
+    @Test
+    void sauceOnAPlateWithoutLoadedFoodReturnsBeforeTouchingThePlayerOrLadle() {
+        Furniture plate = new Furniture("plate", null, UUID.randomUUID());
+        plate.getActiveSlots().put("item_1", new PlacedSlot(plate, "item_1"));
+        PlacedSlot unrecognized = new PlacedSlot(plate, "item_2");
+        unrecognized.setModel(new ItemStack() {
+            @Override
+            public boolean hasItemMeta() {
+                return false;
+            }
+        });
+        plate.getActiveSlots().put("item_2", unrecognized);
+
+        assertDoesNotThrow(() -> new PlateManager().addSauce(null, plate, null, null));
+        assertFalse(plate.hasActiveSlot("sauce"));
+    }
+
+    @Test
+    void displaySlotsDoNotCountAsFood() {
+        Furniture plate = plateWithSauceVisual();
+        plate.getActiveSlots().put("display_1", new PlacedSlot(plate, "display_1"));
+
+        assertTrue(new PlateManager().hasLeftoverSauce(plate, null));
+    }
+
+    @Test
+    void sauceOnADisplayOnlyPlateReturnsBeforeTouchingThePlayerOrLadle() {
+        Furniture plate = new Furniture("plate", null, UUID.randomUUID());
+        plate.getActiveSlots().put("display_1", new PlacedSlot(plate, "display_1"));
+
+        assertDoesNotThrow(() -> new PlateManager().addSauce(null, plate, null, null));
+        assertFalse(plate.hasActiveSlot("sauce"));
+    }
 }
